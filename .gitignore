@@ -1,0 +1,9 @@
+.DS_Store
+__pycache__/
+*.pyc
+.env
+.venv/
+*.pptx
+update_ppt*.py
+agent-tools/
+agent-transcripts/
