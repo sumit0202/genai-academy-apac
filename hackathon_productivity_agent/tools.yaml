@@ -1,0 +1,175 @@
+sources:
+  productivity-db:
+    kind: bigquery
+    project: YOUR_PROJECT_ID
+
+tools:
+  create_task:
+    kind: bigquery-sql
+    source: productivity-db
+    description: Creates a new task with a title, priority level, and optional description.
+    parameters:
+      - name: title
+        type: string
+        description: The title of the task
+      - name: priority
+        type: string
+        description: Priority level - high, medium, or low
+      - name: task_description
+        type: string
+        description: Optional description of the task
+    statement: |
+      INSERT INTO `YOUR_PROJECT_ID.productivity_assistant.tasks`
+        (task_id, title, description, priority, status, created_at)
+      VALUES
+        (GENERATE_UUID(), $1, $3, $2, 'pending', CURRENT_TIMESTAMP())
+
+  list_tasks:
+    kind: bigquery-sql
+    source: productivity-db
+    description: Lists all tasks with their status and priority.
+    statement: |
+      SELECT task_id, title, description, priority, status, created_at
+      FROM `YOUR_PROJECT_ID.productivity_assistant.tasks`
+      ORDER BY created_at DESC
+      LIMIT 20
+
+  update_task_status:
+    kind: bigquery-sql
+    source: productivity-db
+    description: Updates the status of a task by its title.
+    parameters:
+      - name: title
+        type: string
+        description: The title of the task to update
+      - name: new_status
+        type: string
+        description: The new status - pending, in_progress, or completed
+    statement: |
+      UPDATE `YOUR_PROJECT_ID.productivity_assistant.tasks`
+      SET status = $2
+      WHERE LOWER(title) LIKE LOWER(CONCAT('%', $1, '%'))
+
+  delete_task:
+    kind: bigquery-sql
+    source: productivity-db
+    description: Deletes a task by its title.
+    parameters:
+      - name: title
+        type: string
+        description: The title of the task to delete
+    statement: |
+      DELETE FROM `YOUR_PROJECT_ID.productivity_assistant.tasks`
+      WHERE LOWER(title) LIKE LOWER(CONCAT('%', $1, '%'))
+
+  create_event:
+    kind: bigquery-sql
+    source: productivity-db
+    description: Creates a new calendar event with title, date, and time.
+    parameters:
+      - name: title
+        type: string
+        description: The title of the event
+      - name: event_date
+        type: string
+        description: Date in YYYY-MM-DD format
+      - name: event_time
+        type: string
+        description: Time in HH:MM format
+    statement: |
+      INSERT INTO `YOUR_PROJECT_ID.productivity_assistant.schedule`
+        (event_id, title, event_date, event_time, created_at)
+      VALUES
+        (GENERATE_UUID(), $1, PARSE_DATE('%Y-%m-%d', $2), PARSE_TIME('%H:%M', $3), CURRENT_TIMESTAMP())
+
+  list_events:
+    kind: bigquery-sql
+    source: productivity-db
+    description: Lists all upcoming events from the schedule.
+    statement: |
+      SELECT event_id, title, event_date, event_time, created_at
+      FROM `YOUR_PROJECT_ID.productivity_assistant.schedule`
+      ORDER BY event_date ASC, event_time ASC
+      LIMIT 20
+
+  delete_event:
+    kind: bigquery-sql
+    source: productivity-db
+    description: Deletes a scheduled event by title.
+    parameters:
+      - name: title
+        type: string
+        description: The title of the event to delete
+    statement: |
+      DELETE FROM `YOUR_PROJECT_ID.productivity_assistant.schedule`
+      WHERE LOWER(title) LIKE LOWER(CONCAT('%', $1, '%'))
+
+  create_note:
+    kind: bigquery-sql
+    source: productivity-db
+    description: Creates a new note with title and content.
+    parameters:
+      - name: title
+        type: string
+        description: The title of the note
+      - name: content
+        type: string
+        description: The content of the note
+    statement: |
+      INSERT INTO `YOUR_PROJECT_ID.productivity_assistant.notes`
+        (note_id, title, content, created_at)
+      VALUES
+        (GENERATE_UUID(), $1, $2, CURRENT_TIMESTAMP())
+
+  list_notes:
+    kind: bigquery-sql
+    source: productivity-db
+    description: Lists all notes.
+    statement: |
+      SELECT note_id, title, content, created_at
+      FROM `YOUR_PROJECT_ID.productivity_assistant.notes`
+      ORDER BY created_at DESC
+      LIMIT 20
+
+  search_notes:
+    kind: bigquery-sql
+    source: productivity-db
+    description: Searches notes by keyword in title or content.
+    parameters:
+      - name: keyword
+        type: string
+        description: Keyword to search for in notes
+    statement: |
+      SELECT note_id, title, content, created_at
+      FROM `YOUR_PROJECT_ID.productivity_assistant.notes`
+      WHERE LOWER(title) LIKE LOWER(CONCAT('%', $1, '%'))
+         OR LOWER(content) LIKE LOWER(CONCAT('%', $1, '%'))
+      ORDER BY created_at DESC
+
+  delete_note:
+    kind: bigquery-sql
+    source: productivity-db
+    description: Deletes a note by title.
+    parameters:
+      - name: title
+        type: string
+        description: The title of the note to delete
+    statement: |
+      DELETE FROM `YOUR_PROJECT_ID.productivity_assistant.notes`
+      WHERE LOWER(title) LIKE LOWER(CONCAT('%', $1, '%'))
+
+toolsets:
+  task_toolset:
+    - create_task
+    - list_tasks
+    - update_task_status
+    - delete_task
+  schedule_toolset:
+    - create_event
+    - list_events
+    - delete_event
+  notes_toolset:
+    - create_note
+    - list_notes
+    - search_notes
+    - delete_note
